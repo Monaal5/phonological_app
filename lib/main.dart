@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:test_app/onboarding_screen.dart';
-import 'package:test_app/phonological_test_buttons.dart';
+
+import 'package:test_app/splash_screen.dart';
 
 
-void main() {
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Future.delayed(Duration(seconds: 3)); // simulate loading delay
+
   runApp(const TalkingBearApp());
 }
 
@@ -15,7 +19,7 @@ class TalkingBearApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Talking Bear Phonological App',
-      home: const OnboardingScreen(),
+      home:  SplashScreen(),
     );
   }
 }
