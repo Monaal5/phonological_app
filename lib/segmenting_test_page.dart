@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
+import 'bear_animation.dart';
+
 class SegmentingTestPage extends StatefulWidget {
   const SegmentingTestPage({super.key});
 
@@ -10,6 +12,8 @@ class SegmentingTestPage extends StatefulWidget {
 }
 
 class _SegmentingTestPageState extends State<SegmentingTestPage> {
+  late List<_SegmentingQuestion> _questions;
+  BearAnimationController? _bearController;
   final FlutterTts _flutterTts = FlutterTts();
   final stt.SpeechToText _speech = stt.SpeechToText();
   final TextEditingController _textController = TextEditingController();
@@ -22,7 +26,7 @@ class _SegmentingTestPageState extends State<SegmentingTestPage> {
   bool _useTextInput = false;
   int _currentQuestionIndex = 0;
   int _correctAnswers = 0;
-  late List<_SegmentingQuestion> _questions;
+
   bool _speechInitialized = false;
 
   @override
@@ -33,18 +37,6 @@ class _SegmentingTestPageState extends State<SegmentingTestPage> {
     _initializeSpeech();
     _testSpeechRecognition();
     _startTest();
-  }
-
-  Future<void> _testSpeechRecognition() async {
-    print('Testing speech recognition...');
-    bool available = await _speech.initialize();
-    print('Speech available: $available');
-    
-    if (available) {
-      print('Speech recognition is available');
-    } else {
-      print('Speech recognition is NOT available');
-    }
   }
 
   Future<void> _initializeSpeech() async {
@@ -65,6 +57,18 @@ class _SegmentingTestPageState extends State<SegmentingTestPage> {
     } catch (e) {
       print('Speech initialization error: $e');
       _speechInitialized = false;
+    }
+  }
+
+  Future<void> _testSpeechRecognition() async {
+    print('Testing speech recognition...');
+    bool available = await _speech.initialize();
+    print('Speech available: $available');
+
+    if (available) {
+      print('Speech recognition is available');
+    } else {
+      print('Speech recognition is NOT available');
     }
   }
 
@@ -337,6 +341,7 @@ class _SegmentingTestPageState extends State<SegmentingTestPage> {
   }
 
   Future<void> _speak(String text) async {
+    _bearController?.playTalk();
     await _flutterTts.speak(text);
     await _flutterTts.awaitSpeakCompletion(true);
   }
@@ -345,26 +350,44 @@ class _SegmentingTestPageState extends State<SegmentingTestPage> {
     if (!_speechInitialized) {
       await _initializeSpeech();
     }
-    
-    if (!_speechInitialized) return '';
-    
-    setState(() => _isListening = true);
-    await _speech.listen(
-      localeId: 'en_US',
-      listenFor: const Duration(seconds: 8),
-      pauseFor: const Duration(seconds: 1),
-      partialResults: false,
-      listenMode: stt.ListenMode.confirmation,
-    );
-    
-    // Wait for a shorter time
-    int waited = 0;
-    while (_isListening && waited < 9000) {
-      await Future.delayed(const Duration(milliseconds: 100));
-      waited += 100;
+    if (!_speechInitialized) {
+      print('Speech not initialized');
+      return '';
     }
-    await _speech.stop();
-    return _speech.lastRecognizedWords;
+    try {
+      setState(() => _isListening = true);
+      _bearController?.playHear();
+      setState(() => _isListening = true);
+      bool available = await _speech.initialize();
+      if (!available) {
+        print('Speech not available');
+        setState(() => _isListening = false);
+        return '';
+      }
+      await _speech.listen(
+        localeId: 'en_US',
+        listenFor: const Duration(seconds: 12),
+        pauseFor: const Duration(seconds: 2),
+        partialResults: false,
+        listenMode: stt.ListenMode.confirmation,
+        onResult: (result) {
+          print('Speech result: ${result.recognizedWords}');
+        },
+      );
+      int waited = 0;
+      while (_isListening && waited < 13000) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        waited += 100;
+      }
+      await _speech.stop();
+      String result = _speech.lastRecognizedWords;
+      print('Final result: "$result"');
+      return result;
+    } catch (e) {
+      print('Listen error: $e');
+      setState(() => _isListening = false);
+      return '';
+    }
   }
 
   Future<void> _onMicPressed() async {
@@ -372,10 +395,8 @@ class _SegmentingTestPageState extends State<SegmentingTestPage> {
       _waitingForMic = false;
       _isListening = false;
     });
-    
     final spoken = await _listen();
     _userAnswer = spoken;
-    
     if (spoken.isEmpty) {
       setState(() {
         _feedbackMessage = "Didn't hear anything. Try again!";
@@ -386,8 +407,6 @@ class _SegmentingTestPageState extends State<SegmentingTestPage> {
       await _speak("I didn't hear you. Let's try again.");
       return;
     }
-    
-    // Immediate answer checking
     final correct = _checkAnswer(spoken);
     setState(() {
       _feedbackMessage = correct ? "Correct! Great job!" : "Oops! Try again!";
@@ -395,13 +414,13 @@ class _SegmentingTestPageState extends State<SegmentingTestPage> {
       if (correct) _correctAnswers++;
       _isListening = false;
     });
-    
     await _speak(_feedbackMessage);
-    
     if (correct) {
+      _bearController?.playSuccess();
       await Future.delayed(const Duration(seconds: 1));
       _nextQuestion();
     } else {
+      _bearController?.playFail();
       setState(() {
         _waitingForMic = true;
         _isListening = false;
@@ -412,16 +431,15 @@ class _SegmentingTestPageState extends State<SegmentingTestPage> {
   bool _checkAnswer(String answer) {
     final q = _questions[_currentQuestionIndex];
     final user = answer.trim().toLowerCase();
-    
     if (q.allowAnyAnswer != null) {
-      return q.allowAnyAnswer!.any((a) => user.contains(a.toLowerCase()));
+      return q.allowAnyAnswer!.any((r) => user.contains(r.toLowerCase()));
     }
-    
     return user.contains(q.answer.toLowerCase());
   }
 
   void _nextQuestion() {
     setState(() {
+      _bearController?.playTalk();
       _currentQuestionIndex++;
       _userAnswer = '';
       _feedbackMessage = '';
@@ -430,11 +448,39 @@ class _SegmentingTestPageState extends State<SegmentingTestPage> {
     if (_currentQuestionIndex < _questions.length) {
       _currentQuestion = _questions[_currentQuestionIndex].question;
       _speak(_currentQuestion);
+      _bearController?.playTalk();
       setState(() {
         _waitingForMic = true;
       });
     } else {
       _showResults();
+    }
+  }
+
+  Future<void> _onTextSubmitted(String text) async {
+    if (text.trim().isEmpty) return;
+    setState(() {
+      _waitingForMic = false;
+      _userAnswer = text.trim();
+    });
+    final correct = _checkAnswer(text.trim());
+    setState(() {
+      _feedbackMessage = correct ? "Correct! Great job!" : "Oops! Try again!";
+      _feedbackColor = correct ? Colors.green : Colors.red;
+      if (correct) _correctAnswers++;
+    });
+    await _speak(_feedbackMessage);
+    if (correct) {
+      _bearController?.playSuccess();
+      await Future.delayed(const Duration(seconds: 1));
+      _textController.clear();
+      _nextQuestion();
+    } else {
+      _bearController?.playFail();
+      setState(() {
+        _waitingForMic = true;
+      });
+      _textController.clear();
     }
   }
 
@@ -469,7 +515,7 @@ class _SegmentingTestPageState extends State<SegmentingTestPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.orange[50],
+      backgroundColor: Color(0xFFD6E3ED),
       appBar: AppBar(
         title: const Text('Segmenting Test'),
         backgroundColor: Colors.deepOrangeAccent,
@@ -480,22 +526,29 @@ class _SegmentingTestPageState extends State<SegmentingTestPage> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
+
             LinearProgressIndicator(
               value: _questions.isEmpty ? 0 : (_currentQuestionIndex + 1) / _questions.length,
               backgroundColor: Colors.grey[300],
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.deepOrangeAccent),
             ),
             const SizedBox(height: 10),
+
             Text(
               'Question ${_currentQuestionIndex + 1} of ${_questions.length}',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 30),
+
             Expanded(
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    BearAnimationWidget(
+                      onControllerReady: (controller) {
+                        _bearController = controller;
+                      },
+                    ),
                     Text(
                       _currentQuestion,
                       textAlign: TextAlign.center,
@@ -515,17 +568,52 @@ class _SegmentingTestPageState extends State<SegmentingTestPage> {
                         color: _feedbackColor,
                       ),
                     ),
-                    const SizedBox(height: 30),
+
                     if (_isListening)
                       const CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrangeAccent),
                       ),
-                    if (_waitingForMic && !_isListening)
+                    if (_waitingForMic && !_isListening && !_useTextInput)
                       IconButton(
                         icon: const Icon(Icons.mic, size: 60, color: Colors.deepOrangeAccent),
                         tooltip: 'Tap to answer',
                         onPressed: _onMicPressed,
                       ),
+                    if (_waitingForMic && !_isListening && _useTextInput)
+                      Column(
+                        children: [
+                          TextField(
+                            controller: _textController,
+                            decoration: const InputDecoration(
+                              hintText: 'Type your answer here...',
+                              border: OutlineInputBorder(),
+                            ),
+                            onSubmitted: (value) => _onTextSubmitted(value),
+                          ),
+                          const SizedBox(height: 10),
+                          ElevatedButton(
+                            onPressed: () => _onTextSubmitted(_textController.text),
+                            child: const Text('Submit Answer'),
+                          ),
+                        ],
+                      ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('Input Method: '),
+                        Switch(
+                          value: _useTextInput,
+                          onChanged: (value) {
+                            setState(() {
+                              _useTextInput = value;
+                              _textController.clear();
+                            });
+                          },
+                        ),
+                        Text(_useTextInput ? 'Text' : 'Voice'),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -536,7 +624,6 @@ class _SegmentingTestPageState extends State<SegmentingTestPage> {
     );
   }
 }
-
 class _SegmentingQuestion {
   final String question;
   final String answer;
