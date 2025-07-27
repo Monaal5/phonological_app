@@ -1,9 +1,25 @@
 import 'package:flutter/material.dart';
 
 import 'main_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+class SettingsScreen extends StatefulWidget {
+  final double? currentRate;
+  final bool fromTestPage;
+  const SettingsScreen({Key? key, this.currentRate, this.fromTestPage = false}) : super(key: key);
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  double? _currentRate;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentRate = widget.currentRate ?? 0.4;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,11 +28,16 @@ class SettingsScreen extends StatelessWidget {
         leading: IconButton(
             icon: Icon(Icons.arrow_back),
             onPressed: () {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) => const MainScreen(),
-                ),
-              );}
+              if (widget.fromTestPage) {
+                Navigator.of(context).pop();
+              } else {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const MainScreen(),
+                  ),
+                );
+              }
+            }
         ),
         title: const Text('Settings'),
         backgroundColor: Colors.transparent,
@@ -166,6 +187,39 @@ class SettingsScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // --- Speech Rate Slider Section ---
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Speech Rate',
+                            style: TextStyle(
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          _SpeechRateSlider(
+                            currentRate: _currentRate ?? 0.4,
+                            onRateSaved: (rate) async {
+                              setState(() {
+                                _currentRate = rate;
+                              });
+                              // Save to SharedPreferences
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setDouble('speech_rate', rate);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Settings saved successfully'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
                     ListTile(
                       leading: const Icon(Icons.language),
                       title: const Text('Language'),
@@ -219,6 +273,66 @@ class SettingsScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// --- Speech Rate Slider Widget ---
+class _SpeechRateSlider extends StatefulWidget {
+  final double currentRate;
+  final void Function(double rate) onRateSaved;
+  const _SpeechRateSlider({Key? key, required this.currentRate, required this.onRateSaved}) : super(key: key);
+
+  @override
+  State<_SpeechRateSlider> createState() => _SpeechRateSliderState();
+}
+
+class _SpeechRateSliderState extends State<_SpeechRateSlider> {
+  double? _rate;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_rate == null) {
+      _rate = widget.currentRate;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Slider(
+          min: 0.2,
+          max: 1.0,
+          divisions: 8,
+          value: _rate!,
+          label: _rate!.toStringAsFixed(2),
+          onChanged: (value) {
+            setState(() {
+              _rate = value;
+            });
+          },
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Slow'),
+            Text('Normal'),
+            Text('Fast'),
+          ],
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: ElevatedButton(
+            onPressed: () {
+              widget.onRateSaved(_rate!);
+            },
+            child: const Text('Save Speech Rate'),
+          ),
+        ),
+      ],
     );
   }
 }

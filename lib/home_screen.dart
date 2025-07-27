@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:test_app/dashboard_screen.dart';
 import 'package:test_app/phonological_test_buttons.dart';
 import 'package:test_app/settings_screen.dart';
+import 'dashboard_screen.dart';
 
 class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -181,7 +183,7 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-            _FeatureCard(
+            FeatureCard(
               icon: Icons.science_outlined,
               color: Colors.redAccent,
               title: "Phonological Test",
@@ -189,18 +191,18 @@ class HomeScreen extends StatelessWidget {
               onTap:(){ Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context)=>BearHomePage()));},
 
             ),
-            _FeatureCard(
-              icon: Icons.dashboard_outlined,
-              color: Colors.teal,
-              title: "Dashboard",
-              subtitle: "View progress & analytics",
+            FeatureCard(
+                icon: Icons.dashboard_outlined,
+                color: Colors.teal,
+                title: "Dashboard",
+                subtitle: "View progress & analytics",
                 onTap:(){ Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context)=>DashboardScreen()));}
             ),
-            _FeatureCard(
-              icon: Icons.settings_outlined,
-              color: Colors.blueGrey,
-              title: "Settings",
-              subtitle: "Customize your experience",
+            FeatureCard(
+                icon: Icons.settings_outlined,
+                color: Colors.blueGrey,
+                title: "Settings",
+                subtitle: "Customize your experience",
                 onTap:(){ Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context)=>SettingsScreen()));}
             ),
             const Padding(
@@ -272,19 +274,21 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _FeatureCard extends StatelessWidget {
+class FeatureCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String title;
   final String subtitle;
   final VoidCallback? onTap;
 
-  const _FeatureCard({
+
+  const FeatureCard({
     required this.icon,
     required this.color,
     required this.title,
     required this.subtitle,
     this.onTap,
+
 
   });
 
@@ -309,7 +313,7 @@ class _FeatureCard extends StatelessWidget {
             ),
             title: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             subtitle: Text(subtitle, style: const TextStyle(fontSize: 14)),
-            trailing: const Icon(Icons.arrow_forward),
+            // trailing: const Icon(Icons.arrow_forward),
           ),
         ),
       ),

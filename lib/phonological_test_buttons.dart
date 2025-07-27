@@ -1,13 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'main_screen.dart';
-import 'rhyming_test_page.dart';
-import 'syllable_test_page.dart';
-import 'segmenting_test_page.dart';
-import 'blending_test_page.dart';
-import 'initial_sound_test_page.dart';
-import 'final_sound_test_page.dart';
-import 'middle_sound_test_page.dart';
+import 'test_page.dart';
 class BearHomePage extends StatefulWidget {
   const BearHomePage({super.key});
 
@@ -22,15 +16,15 @@ class _BearHomePageState extends State<BearHomePage> {
       backgroundColor: Colors.orange[50],
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-    onPressed: () {
-    Navigator.of(context).pushReplacement(
-    MaterialPageRoute(
-    builder: (context) => const MainScreen(),
-    ),
-    );}
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const MainScreen(),
+                ),
+              );}
         ),
-        title: const Text('Talking Bear Phonological App'),
+        title: const Text(' Phonological Assessment'),
         backgroundColor: Colors.deepOrangeAccent,
         foregroundColor: Colors.white,
         centerTitle: true,
@@ -56,37 +50,37 @@ class _BearHomePageState extends State<BearHomePage> {
                 children: [
                   _testCard(context, 'Rhyming', Icons.music_note, Colors.red, () {
                     Navigator.push(context, MaterialPageRoute(
-                      builder: (context) => const RhymingTestPage(),
+                      builder: (context) => const TestPage(title : 'Rhyming'),
                     ));
                   }),
                   _testCard(context, 'Syllables', Icons.audiotrack, Colors.blue, () {
                     Navigator.push(context, MaterialPageRoute(
-                      builder: (context) => const SyllableTestPage(),
+                      builder: (context) => const TestPage(title : 'Syllables'),
                     ));
                   }),
                   _testCard(context, 'Segmenting', Icons.scatter_plot, Colors.green, () {
                     Navigator.push(context, MaterialPageRoute(
-                      builder: (context) => const SegmentingTestPage(),
+                      builder: (context) => const TestPage(title: 'Segmenting'),
                     ));
                   }),
                   _testCard(context, 'Blending', Icons.merge, Colors.purple, () {
                     Navigator.push(context, MaterialPageRoute(
-                      builder: (context) => const BlendingTestPage(),
+                      builder: (context) => const TestPage(title: 'Blending'),
                     ));
                   }),
-                  _testCard(context, 'Initial Sound', Icons.text_fields, Colors.orange, () {
+                  _testCard(context, 'InitialSound', Icons.text_fields, Colors.orange, () {
                     Navigator.push(context, MaterialPageRoute(
-                      builder: (context) => const InitialSoundTestPage(),
+                      builder: (context) => const TestPage(title: 'InitialSound'),
                     ));
                   }),
-                  _testCard(context, 'Final Sound', Icons.text_fields, Colors.teal, () {
+                  _testCard(context, 'FinalSound', Icons.text_fields, Colors.teal, () {
                     Navigator.push(context, MaterialPageRoute(
-                      builder: (context) => const FinalSoundTestPage(),
+                      builder: (context) => const TestPage(title: 'FinalSound'),
                     ));
                   }),
-                  _testCard(context, 'Middle Sound', Icons.text_fields, Colors.indigo, () {
+                  _testCard(context, 'MiddleSound', Icons.text_fields, Colors.indigo, () {
                     Navigator.push(context, MaterialPageRoute(
-                      builder: (context) => const MiddleSoundTestPage(),
+                      builder: (context) => const TestPage(title: 'MiddleSound'),
                     ));
                   }),
                 ],

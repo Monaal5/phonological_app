@@ -2,9 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:test_app/settings_screen.dart';
-
-import 'dashboard_screen.dart';
 import 'home_screen.dart';
+import 'dashboard_screen.dart';
 
 
 
@@ -25,8 +24,8 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     HomeScreen(),
-    const DashboardScreen(),
-    const SettingsScreen(),
+    DashboardScreen(),
+    SettingsScreen(),
   ];
 
   void _onItemTapped(int index) {
