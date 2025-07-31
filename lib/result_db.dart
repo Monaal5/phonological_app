@@ -25,23 +25,29 @@ class ResultDataBase {
     var databasesPath = await getDatabasesPath();
     String path = join(databasesPath, 'phonological_result.db');
 
-    _database = await openDatabase(path, version: 1,
+    _database = await openDatabase(path, version: 2, // Increment version
         onCreate: (Database db, int version) async {
           await db.execute(
-              'CREATE TABLE Test (testID INTEGER PRIMARY KEY, testTitle TEXT, date TEXT, time TEXT, score INTEGER)');
+              'CREATE TABLE Test (testID INTEGER PRIMARY KEY, testTitle TEXT, date TEXT, time TEXT, score INTEGER, correctAnswers INTEGER, wrongAnswers INTEGER)');
+        },
+        onUpgrade: (Database db, int oldVersion, int newVersion) async {
+          if (oldVersion < 2) {
+            await db.execute('ALTER TABLE Test ADD COLUMN correctAnswers INTEGER DEFAULT 0');
+            await db.execute('ALTER TABLE Test ADD COLUMN wrongAnswers INTEGER DEFAULT 0');
+          }
         });
   }
 
   // Insert data into the database
-  Future<void> insertDB(String title, String date, String time, int score) async {
+  Future<void> insertDB(String title, String date, String time, int score, int correctAnswers, int wrongAnswers) async {
     if (_database == null) {
       throw Exception("Database not initialized. Call createDB() first.");
     }
 
     await _database!.transaction((txn) async {
       int id = await txn.rawInsert(
-          'INSERT INTO Test(testTitle, date, time, score) VALUES(?, ?, ?, ?)',
-          [title, date, time, score]);
+          'INSERT INTO Test(testTitle, date, time, score, correctAnswers, wrongAnswers) VALUES(?, ?, ?, ?, ?, ?)',
+          [title, date, time, score, correctAnswers, wrongAnswers]);
       print('Inserted row ID: $id');
     });
   }

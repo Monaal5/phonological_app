@@ -54,20 +54,47 @@ class _AvatarState extends State<Avatar> {
     if (lastValidSrcGlb == null) {
       return const SizedBox.shrink(); // Show nothing if no model ever loaded
     }
-    return SafeArea(
-      child: SizedBox(
-        width: 500,
-        height: 300,
-        child: ModelViewer(
-          key: ValueKey(lastValidSrcGlb),
-          src: lastValidSrcGlb!,
-          alt: "3D avatar model",
-          cameraControls: false,
-          autoPlay: true,
-          backgroundColor: Colors.transparent,
-          cameraOrbit: '0deg 90deg 100m',
-          fieldOfView: '40deg',
-          cameraTarget: "0m 0.7m 0m",
+
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.blue.withOpacity(0.1),
+                Colors.white.withOpacity(0.8),
+                Colors.blue.withOpacity(0.1),
+              ],
+            ),
+          ),
+          child: ModelViewer(
+            key: ValueKey(lastValidSrcGlb),
+            src: lastValidSrcGlb!,
+            alt: "3D avatar model",
+            cameraControls: false,
+            autoPlay: true,
+            backgroundColor: Colors.transparent,
+            cameraOrbit: '0deg 90deg 100m',
+            fieldOfView: '40deg',
+            cameraTarget: "0m 0.7m 0m",   // Maximum zoom distance
+            autoRotate: false,
+
+          ),
         ),
       ),
     );

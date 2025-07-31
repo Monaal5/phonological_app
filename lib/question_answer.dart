@@ -513,14 +513,14 @@ List<Question> buildRhymingQuestions() {
       question: "Which word rhymes with log? a) frog  b) sun  c) car",
       answer: "frog",
     ),
-    Question(
-      question: "Which word rhymes with star? a) car  b) book  c) tree",
-      answer: "car",
-    ),
-    Question(
-      question: "Which word rhymes with cake? a) bike  b) lake  c) sun",
-      answer: "lake",
-    ),
+    // Question(
+    //   question: "Which word rhymes with star? a) car  b) book  c) tree",
+    //   answer: "car",
+    // ),
+    // Question(
+    //   question: "Which word rhymes with cake? a) bike  b) lake  c) sun",
+    //   answer: "lake",
+    // ),
     // Production
     Question(
       question: "Tell me a word that rhymes with dog.",
@@ -532,59 +532,59 @@ List<Question> buildRhymingQuestions() {
       answer: "fun",
       allowAnyAnswer: ["fun", "run", "bun", "none", "done", "gun"],
     ),
-    Question(
-      question: "Can you think of a word that rhymes with tree?",
-      answer: "bee",
-      allowAnyAnswer: ["bee", "see", "free", "three", "knee", "flee", "key"],
-    ),
-    // Rhyme Judgment
-    Question(
-      question: "Do cat and hat rhyme? (yes or no)",
-      answer: "yes",
-    ),
-    Question(
-      question: "Do fish and dish rhyme? (yes or no)",
-      answer: "yes",
-    ),
-    Question(
-      question: "Do book and ball rhyme? (yes or no)",
-      answer: "no",
-    ),
-    Question(
-      question: "Do cake and bike rhyme? (yes or no)",
-      answer: "no",
-    ),
-    // More variety
-    Question(
-      question: "Which of these words rhymes with 'mouse'? a) house  b) dog  c) sun",
-      answer: "house",
-    ),
-    Question(
-      question: "Say a word that rhymes with 'star'.",
-      answer: "car",
-      allowAnyAnswer: ["car", "bar", "far", "jar", "tar"],
-    ),
-    Question(
-      question: "Do 'night' and 'light' rhyme? (yes or no)",
-      answer: "yes",
-    ),
-    Question(
-      question: "Which word rhymes with 'cake'? a) snake  b) sun  c) dog",
-      answer: "snake",
-    ),
-    Question(
-      question: "Tell me a word that rhymes with 'red'.",
-      answer: "bed",
-      allowAnyAnswer: ["bed", "head", "said", "led", "fed"],
-    ),
-    Question(
-      question: "Do 'blue' and 'shoe' rhyme? (yes or no)",
-      answer: "yes",
-    ),
-    Question(
-      question: "Which of these words rhymes with 'fun'? a) run  b) dog  c) cat",
-      answer: "run",
-    ),
+    // Question(
+    //   question: "Can you think of a word that rhymes with tree?",
+    //   answer: "bee",
+    //   allowAnyAnswer: ["bee", "see", "free", "three", "knee", "flee", "key"],
+    // ),
+    // // Rhyme Judgment
+    // Question(
+    //   question: "Do cat and hat rhyme? (yes or no)",
+    //   answer: "yes",
+    // ),
+    // Question(
+    //   question: "Do fish and dish rhyme? (yes or no)",
+    //   answer: "yes",
+    // ),
+    // Question(
+    //   question: "Do book and ball rhyme? (yes or no)",
+    //   answer: "no",
+    // ),
+    // Question(
+    //   question: "Do cake and bike rhyme? (yes or no)",
+    //   answer: "no",
+    // ),
+    // // More variety
+    // Question(
+    //   question: "Which of these words rhymes with 'mouse'? a) house  b) dog  c) sun",
+    //   answer: "house",
+    // ),
+    // Question(
+    //   question: "Say a word that rhymes with 'star'.",
+    //   answer: "car",
+    //   allowAnyAnswer: ["car", "bar", "far", "jar", "tar"],
+    // ),
+    // Question(
+    //   question: "Do 'night' and 'light' rhyme? (yes or no)",
+    //   answer: "yes",
+    // ),
+    // Question(
+    //   question: "Which word rhymes with 'cake'? a) snake  b) sun  c) dog",
+    //   answer: "snake",
+    // ),
+    // Question(
+    //   question: "Tell me a word that rhymes with 'red'.",
+    //   answer: "bed",
+    //   allowAnyAnswer: ["bed", "head", "said", "led", "fed"],
+    // ),
+    // Question(
+    //   question: "Do 'blue' and 'shoe' rhyme? (yes or no)",
+    //   answer: "yes",
+    // ),
+    // Question(
+    //   question: "Which of these words rhymes with 'fun'? a) run  b) dog  c) cat",
+    //   answer: "run",
+   // ),
     Question(
       question: "Say a word that rhymes with 'pig'.",
       answer: "wig",

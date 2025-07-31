@@ -38,6 +38,7 @@ class TestPageState extends State<TestPage> {
   bool _useTextInput = false;
   int _currentQuestionIndex = 0;
   int _correctAnswers = 0;
+  int _wrongAnswers = 0;
   String _currentAvatarTitle = 'ask';
   bool _speechInitialized = false;
   String title = '';
@@ -107,10 +108,10 @@ class TestPageState extends State<TestPage> {
         _voices = List<Map>.from(data);
         setState(() {
           _voices = _voices.where((_voice) => _voice['name'].contains('en')).toList();
-            if (_currentVoice == null && _voices.isNotEmpty) {
-      _currentVoice = _voices.first;
-      setVoice(_currentVoice!);
-    }
+          if (_currentVoice == null && _voices.isNotEmpty) {
+            _currentVoice = _voices.first;
+            setVoice(_currentVoice!);
+          }
         });
       } catch (e) {
         print('Error getting voices: $e');
@@ -151,37 +152,33 @@ class TestPageState extends State<TestPage> {
     }
   }
 
- void _startTest() async {
-  _updateAvatarTitle('ask');
-  _currentQuestionIndex = 0;
-  _correctAnswers = 0;
-  _userAnswer = '';
-  _feedbackMessage = '';
-  _feedbackColor = Colors.transparent;
+  void _startTest() async {
+    _updateAvatarTitle('ask');
+    _currentQuestionIndex = 0;
+    _correctAnswers = 0;
+    _wrongAnswers = 0; // Reset wrong answers
+    _userAnswer = '';
+    _feedbackMessage = '';
+    _feedbackColor = Colors.transparent;
 
-  setState(() {
-    _currentQuestion = questions[0].question;
-    _waitingForMic = true;
-  });
+    setState(() {
+      _currentQuestion = questions[0].question;
+      _waitingForMic = true;
+    });
 
-   WidgetsBinding.instance.addPostFrameCallback((_) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _speak(_currentQuestion);
       setState(() {
         _waitingForMic = true;
       });
     });
-
-  setState(() {
-    _waitingForMic = true; 
-}
-
-  );}
+  }
 
   Future<void> _speak(String text) async {
-     if (_currentVoice == null && _voices.isNotEmpty) {
-    _currentVoice = _voices.first;
-    setVoice(_currentVoice!);
-  }
+    if (_currentVoice == null && _voices.isNotEmpty) {
+      _currentVoice = _voices.first;
+      setVoice(_currentVoice!);
+    }
     await _flutterTts.setSpeechRate(_speechRate);
     await _flutterTts.speak(text);
     await _flutterTts.awaitSpeakCompletion(true);
@@ -289,7 +286,7 @@ class TestPageState extends State<TestPage> {
         _showCorrectAnimation = true;
         _correctAnswers++;
         _waitingForMic = true;
-         _isListening = false;
+        _isListening = false;
       });
       _updateAvatarTitle("correct");
       _speak(_feedbackMessage);
@@ -301,11 +298,14 @@ class TestPageState extends State<TestPage> {
       setState(() {
         _feedbackMessage = "Oops! Try again!";
         _feedbackColor = Colors.red;
+        _wrongAnswers++; // Increment wrong answers
         _waitingForMic = true;
         _isListening = false;
       });
       _updateAvatarTitle("wrong");
       await _speak(_feedbackMessage);
+      await Future.delayed(const Duration(milliseconds: 2000)); // Brief pause
+      _nextQuestion(); // Move to next question even if wrong
     }
   }
 
@@ -326,21 +326,17 @@ class TestPageState extends State<TestPage> {
     _feedbackColor = Colors.transparent;
 
     if (_currentQuestionIndex < questions.length) {
-      
-        
-       
-        setState(() {
-          _currentQuestion = questions[_currentQuestionIndex].question;
-        _waitingForMic = true;
-      });
-       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await Future.delayed(const Duration(milliseconds: 500));
-      await _speak(_currentQuestion);
       setState(() {
+        _currentQuestion = questions[_currentQuestionIndex].question;
         _waitingForMic = true;
       });
-    });
-     
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await Future.delayed(const Duration(milliseconds: 500));
+        await _speak(_currentQuestion);
+        setState(() {
+          _waitingForMic = true;
+        });
+      });
     } else {
       _showResults();
     }
@@ -373,23 +369,26 @@ class TestPageState extends State<TestPage> {
       setState(() {
         _feedbackMessage = "Oops! Try again!";
         _feedbackColor = Colors.red;
+        _wrongAnswers++; // Increment wrong answers
         _waitingForMic = true;
       });
       _updateAvatarTitle("wrong");
       await _speak(_feedbackMessage);
+      await Future.delayed(const Duration(milliseconds: 2000)); // Brief pause
       _textController.clear();
+      _nextQuestion(); // Move to next question even if wrong
     }
   }
 
   void _showResults() {
     final score = (_correctAnswers / questions.length * 100).round();
-    rd.insertDB(title, date, time, score);
+    rd.insertDB(title, date, time, score, _correctAnswers, _wrongAnswers); // Pass both counts
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('Test Complete!'),
-        content: Text('You got $_correctAnswers out of ${questions.length} correct!\nScore: $score%'),
+        content: Text('Correct: $_correctAnswers\nWrong: $_wrongAnswers\nTotal: ${questions.length}\nScore: $score%'),
         actions: [
           TextButton(
             onPressed: () {
@@ -411,20 +410,31 @@ class TestPageState extends State<TestPage> {
   }
 
   Widget _speakerSelector() {
-    return DropdownButton<Map>(
-      value: _currentVoice,
-      items: _voices.map((voice) => DropdownMenuItem<Map>(
-        value: voice,
-        child: Text(voice['name']),
-      )).toList(),
-      onChanged: (value) {
-        if (value != null) {
-          setState(() {
-            _currentVoice = value;
-            setVoice(_currentVoice!);
-          });
-        }
-      },
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButton<Map>(
+        value: _currentVoice,
+        underline: const SizedBox(),
+        items: _voices.map((voice) => DropdownMenuItem<Map>(
+          value: voice,
+          child: Text(
+            voice['name'],
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
+          ),
+        )).toList(),
+        onChanged: (value) {
+          if (value != null) {
+            setState(() {
+              _currentVoice = value;
+              setVoice(_currentVoice!);
+            });
+          }
+        },
+      ),
     );
   }
 
@@ -438,97 +448,151 @@ class TestPageState extends State<TestPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       floatingActionButton: Stack(
         children: [
           Positioned(
-            bottom: 16,
-            left: 30,
-
-            child: FloatingActionButton(
-              heroTag: 'audioBtn',
-              onPressed: () async {
-                if (_currentQuestion.isNotEmpty) {
-                  await _speak(_currentQuestion);
-                }
-              },
-
-              child: const Icon(Icons.volume_up),
-              tooltip: 'Repeat Question',
+            bottom: 20,
+            left: 32,
+            child: Container(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                borderRadius: BorderRadius.circular(28),
+              ),
+              child: FloatingActionButton(
+                heroTag: 'audioBtn',
+                onPressed: () async {
+                  if (_currentQuestion.isNotEmpty) {
+                    await _speak(_currentQuestion);
+                  }
+                },
+                backgroundColor: Colors.deepPurple,
+                elevation: 0,
+                child: const Icon(Icons.volume_up, size: 28),
+                tooltip: 'Repeat Question',
+              ),
             ),
           ),
           Positioned(
-            bottom: 16,
-            right: 12,
-            child: FloatingActionButton(
-              child: Icon(Icons.settings),
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SettingsScreen(currentRate: _speechRate, fromTestPage: true),
+            bottom: 20,
+            right: 16,
+            child: Container(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
                   ),
-                );
-                // After returning from settings, reload the speech rate
-                await _loadSpeechRate();
-              },
+                ],
+                borderRadius: BorderRadius.circular(28),
+              ),
+              child: FloatingActionButton(
+                heroTag: 'settingsBtn',
+                backgroundColor: Colors.blueGrey,
+                elevation: 0,
+                child: const Icon(Icons.settings, size: 28),
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SettingsScreen(currentRate: _speechRate, fromTestPage: true),
+                    ),
+                  );
+                  // After returning from settings, reload the speech rate
+                  await _loadSpeechRate();
+                },
+              ),
             ),
           ),
         ],
       ),
-      backgroundColor: Color(0xFFD6E3ED),
+      backgroundColor: const Color(0xFFE8F4F8),
       appBar: AppBar(
-        title: Text(title),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         backgroundColor: const Color.fromARGB(255, 191, 84, 51),
         foregroundColor: Colors.white,
         centerTitle: true,
+        elevation: 2,
         actions: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
             child: _speakerSelector(),
           ),
         ],
       ),
       body: Stack(
         children: [
+          // Progress bar with improved styling
+          Container(
+            height: 6,
+            child: LinearProgressIndicator(
+              value: questions.isEmpty ? 0 : (_currentQuestionIndex + 1) / questions.length,
+              backgroundColor: Colors.grey[300],
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.deepOrangeAccent),
+            ),
+          ),
+
+          // Listening indicator - Moved lower to avoid overlap
           if (_isListening && _micCountdown > 0)
             Positioned(
-              top: 16,
-              right: 16,
+              top: 80, // Changed from 20 to 80 to be below question counter
+              right: 20,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.black.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.mic, color: Colors.redAccent, size: 22),
-                        SizedBox(width: 6),
+                        const Icon(Icons.mic, color: Colors.redAccent, size: 24),
+                        const SizedBox(width: 8),
                         Text(
                           ' ${_micCountdown}s',
-                          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 12),
                         Text(
                           '${_forceListenWindow - _micCountdown + 1}/${_forceListenWindow}s',
-                          style: TextStyle(color: Colors.white70, fontSize: 16),
+                          style: const TextStyle(color: Colors.white70, fontSize: 16),
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.redAccent.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(15),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Listening...',
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                     ),
@@ -536,113 +600,276 @@ class TestPageState extends State<TestPage> {
                 ],
               ),
             ),
+
+          // Main content
           Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
             child: Column(
               children: [
-                const SizedBox(height: 10),
-                LinearProgressIndicator(
-                  value: questions.isEmpty ? 0 : (_currentQuestionIndex + 1) / questions.length,
-                  backgroundColor: Colors.grey[300],
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.deepOrangeAccent),
+                const SizedBox(height: 16),
+
+                // Question counter with better styling
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    'Question ${_currentQuestionIndex + 1} of ${questions.length}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.deepOrange,
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  'Question ${_currentQuestionIndex + 1} of ${questions.length}',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+
+                const SizedBox(height: 24),
+
                 Expanded(
-                  child: Center(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Avatar(title: _currentAvatarTitle),
-                          Text(
-                            _currentQuestion,
+                  child: Column(
+                    children: [
+                      // Avatar section with proper height
+                      Container(
+                        height: screenHeight * 0.25, // Reduced for better balance
+                        width: double.infinity,
+                        child: Avatar(title: _currentAvatarTitle),
+                      ),
+
+                      const SizedBox(height: 16), // Reduced gap
+
+                      // Question text with better styling
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          _currentQuestion,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                            height: 1.2,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12), // Reduced gap
+
+                      // User answer display
+                      if (_userAnswer.isNotEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                          ),
+                          child: Text(
+                            "You said: $_userAnswer",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.blue,
+                              fontWeight: FontWeight.w500,
+                            ),
                             textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w500),
                           ),
-                          const SizedBox(height: 20),
-                          Text(
-                            _userAnswer.isNotEmpty ? "You said: $_userAnswer" : '',
-                            style: const TextStyle(fontSize: 20, color: Colors.black87),
+                        ),
+
+                      // Feedback message
+                      if (_feedbackMessage.isNotEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: _feedbackColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: _feedbackColor.withOpacity(0.3)),
                           ),
-                          const SizedBox(height: 20),
-                          Text(
+                          child: Text(
                             _feedbackMessage,
                             style: TextStyle(
-                              fontSize: 28,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: _feedbackColor,
                             ),
+                            textAlign: TextAlign.center,
                           ),
-                          if (_isListening)
-                            const CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrangeAccent),
-                            ),
-                        if (_waitingForMic && !_useTextInput)
-         AvatarGlow(
-    animate: _isListening || _forceListening,
-    glowColor: Colors.deepOrangeAccent,
-           curve: Curves.fastOutSlowIn,
-    duration: Duration(milliseconds: _micCountdown > 0 ? _micCountdown * 1000 : 2000),
-    repeat: true,
-    child: FloatingActionButton(
-      heroTag: 'micGlow',
-      onPressed: _onMicPressed,
-      backgroundColor: Colors.deepOrangeAccent,
-      child: Icon(
-        _isListening || _forceListening ? Icons.mic : Icons.mic_none,
-        color: Colors.white,
-        size: 30,
-      ),
-    ),
-  ),
+                        ),
 
-                          if (_waitingForMic && !_isListening && _useTextInput)
-                            Column(
-                              children: [
-                                TextField(
+                      // Loading indicator
+                      if (_isListening)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: const CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrangeAccent),
+                            strokeWidth: 4,
+                          ),
+                        ),
+
+                      // Microphone button with better styling
+                      if (_waitingForMic && !_useTextInput)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 16), // Reduced gap
+                          child: AvatarGlow(
+                            animate: _isListening || _forceListening,
+                            glowColor: Colors.deepOrangeAccent,
+                            curve: Curves.fastOutSlowIn,
+                            duration: Duration(milliseconds: _micCountdown > 0 ? _micCountdown * 1000 : 2000),
+                            repeat: true,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.deepOrangeAccent.withOpacity(0.4),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                                borderRadius: BorderRadius.circular(35),
+                              ),
+                              child: FloatingActionButton(
+                                heroTag: 'micGlow',
+                                onPressed: _onMicPressed,
+                                backgroundColor: Colors.deepOrangeAccent,
+                                elevation: 0,
+                                child: Icon(
+                                  _isListening || _forceListening ? Icons.mic : Icons.mic_none,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      // Text input section
+                      if (_waitingForMic && !_isListening && _useTextInput)
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: Column(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: TextField(
                                   controller: _textController,
-                                  decoration: const InputDecoration(
+                                  style: const TextStyle(fontSize: 16),
+                                  decoration: InputDecoration(
                                     hintText: 'Type your answer here...',
-                                    border: OutlineInputBorder(),
+                                    hintStyle: TextStyle(color: Colors.grey[500]),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                   ),
                                   onSubmitted: (value) => _onTextSubmitted(value),
                                 ),
-                                const SizedBox(height: 10),
-                                ElevatedButton(
-                                  onPressed: () => _onTextSubmitted(_textController.text),
-                                  child: const Text('Submit Answer'),
-                                ),
-                              ],
-                            ),
-                          const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text('Input Method: '),
-                              Switch(
-                                value: _useTextInput,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _useTextInput = value;
-                                    _textController.clear();
-                                  });
-                                },
                               ),
-                              Text(_useTextInput ? 'Text' : 'Voice'),
+                              const SizedBox(height: 12),
+                              ElevatedButton(
+                                onPressed: () => _onTextSubmitted(_textController.text),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.deepOrangeAccent,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  elevation: 4,
+                                ),
+                                child: const Text(
+                                  'Submit Answer',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                ),
+                              ),
                             ],
                           ),
-                        ],
+                        ),
+
+                      // Input method toggle with better styling - Always visible
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(25),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Input: ',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                            ),
+                            Switch(
+                              value: _useTextInput,
+                              onChanged: (value) {
+                                setState(() {
+                                  _useTextInput = value;
+                                  _textController.clear();
+                                });
+                              },
+                              activeColor: Colors.deepOrangeAccent,
+                            ),
+                            Text(
+                              _useTextInput ? 'Text' : 'Voice',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.deepOrangeAccent,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
+
+          // Confetti animation
           if (_showCorrectAnimation)
             Positioned.fill(
               child: Center(
